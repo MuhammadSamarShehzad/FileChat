@@ -1,8 +1,8 @@
-from langchain_openai import ChatOpenAI
+from langchain_mistralai import ChatMistralAI
 from .config import API_KEY
 
-llm = ChatOpenAI(
+llm = ChatMistralAI(
     model="mistral-medium",
-    openai_api_key=API_KEY,
-    openai_api_base="https://api.mistral.ai/v1"
+    api_key=API_KEY,
+    temperature=0,
 )

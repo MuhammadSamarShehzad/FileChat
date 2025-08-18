@@ -1,5 +1,7 @@
 import streamlit as st
-import _osx_support
+import os
+from pathlib import Path
+from uuid import uuid4
 from src.graph import build_graph
 from src.store import build_store
 
@@ -9,14 +11,22 @@ if "message_history" not in st.session_state:
 # File upload
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
 if uploaded_file:
-    save_path = os.path.join("data", uploaded_file.name)
-    with open(save_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    with st.spinner("Processing document..."):
+        os.makedirs("data", exist_ok=True)
+        safe_name = Path(uploaded_file.name).name
+        save_path = os.path.join("data", safe_name)
+        with open(save_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
 
-    vs, bm25, raw_docs, intro = build_store(save_path)
-    graph, checkpointer = build_graph(vs, bm25, raw_docs)
-    st.session_state["graph"] = graph
-    st.session_state["intro"] = intro
+        # Reset chat if new file
+        if st.session_state.get("current_file") != save_path:
+            st.session_state["current_file"] = save_path
+            st.session_state["message_history"] = []
+
+        vs, bm25, raw_docs, intro = build_store(save_path)
+        graph, checkpointer = build_graph(vs, bm25, raw_docs)
+        st.session_state["graph"] = graph
+        st.session_state["intro"] = intro
 
 # Chat
 if not st.session_state["message_history"]:
@@ -32,9 +42,11 @@ if prompt and "graph" in st.session_state:
     with st.chat_message("human"):
         st.write(prompt)
 
-    config = {"configurable": {"thread_id": "1"}}
+    thread_id = st.session_state.get("thread_id") or str(uuid4())
+    st.session_state["thread_id"] = thread_id
+    config = {"configurable": {"thread_id": thread_id}}
     result = st.session_state["graph"].invoke({"doc_text": st.session_state["intro"], "query": prompt}, config=config)
-
+    
     # Extract the actual answer content from the message
     if result.get("answer") and len(result["answer"]) > 0:
         answer_content = result["answer"][0].content
@@ -43,4 +55,4 @@ if prompt and "graph" in st.session_state:
 
     st.session_state["message_history"].append({"role": "ai", "content": answer_content})
     with st.chat_message("ai"):
-        st.write(answer_content)
+        st.markdown(answer_content)

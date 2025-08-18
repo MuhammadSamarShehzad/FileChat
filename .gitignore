@@ -1,5 +1,6 @@
 # Environment variables
 .env
+.venv
 
 # Data directory
 /data
@@ -24,4 +25,9 @@ __pycache__/
 
 # OS files
 .DS_Store
-Thumbs.db
+Thumbs.dbs
+
+# Vector index and cache files
+*.faiss
+*.pkl
+data/vectorstores/

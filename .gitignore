@@ -1,0 +1,27 @@
+# Environment variables
+.env
+
+# Data directory
+/data
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+
+# Jupyter notebooks
+/notebooks
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

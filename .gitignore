@@ -1,33 +1,19 @@
-# Environment variables
 .env
-.venv
-
-# Data directory
-/data
-
-# Python cache
+# add the data directory to the ignore list
+data/
+# ignore the log file
+notebooks/
+# add the pycache, .vscode, etc.
 __pycache__/
+.vscode/
 *.pyc
 *.pyo
 *.pyd
-.Python
-*.py[cod]
-*$py.class
-
-# Jupyter notebooks
-/notebooks
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.dbs
-
-# Vector index and cache files
-*.faiss
 *.pkl
-data/vectorstores/
+*.db
+*.sqlite3
+*.log
+
+# ignore the virtual environment
+.venv/
+

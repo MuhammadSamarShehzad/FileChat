@@ -16,12 +16,12 @@ def make_load_docs(vectorstore, k: int = 4):
         query = state.get("question") or ""
         if not query:
             logger.warning("No question found in state; skipping retrieval.")
-            return {"retrieved": []}
+            return {"retrieved": [], "question": ""}
         try:
             results = vectorstore.similarity_search(query, k=k)
         except Exception as exc:
             logger.exception("Vector store retrieval failed: %s", exc)
-            return {"retrieved": []}
+            return {"retrieved": [], "question": query}
         return {
             "retrieved": [r.page_content for r in results],
             "question": query,

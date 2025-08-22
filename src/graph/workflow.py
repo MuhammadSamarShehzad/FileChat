@@ -19,4 +19,3 @@ def create_workflow(vectorstore, k: int = 4):
     graph = workflow.compile(checkpointer=checkpointer)
 
     return graph
-

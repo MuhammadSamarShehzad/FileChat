@@ -17,3 +17,6 @@ __pycache__/
 # ignore the virtual environment
 .venv/
 
+# database temp files
+chatbot.db-shm
+chatbot

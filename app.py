@@ -89,15 +89,15 @@ if st.session_state.pdf_id:
 
 # Upload (only if no PDF is loaded)
 if st.session_state.pdf_id is None:
-    uploaded = st.file_uploader("Upload a PDF", type=["pdf"], accept_multiple_files=False)
-    if uploaded is not None:
+uploaded = st.file_uploader("Upload a PDF", type=["pdf"], accept_multiple_files=False)
+if uploaded is not None:
         # Generate content hash for PDF
         content_hash = hashlib.md5(uploaded.getvalue()).hexdigest()
         
         # Load and process documents
-        docs = load_docs_from_pdf_bytes(uploaded.name, uploaded.getvalue())
-        st.session_state.graph = build_graph_from_documents(docs, k=4)
-        
+	docs = load_docs_from_pdf_bytes(uploaded.name, uploaded.getvalue())
+	st.session_state.graph = build_graph_from_documents(docs, k=4)
+
         # Store PDF in database
         chunks = [doc.page_content for doc in docs]
         pdf_id = db.store_pdf(uploaded.name, content_hash, chunks)
@@ -110,9 +110,9 @@ if st.session_state.pdf_id is None:
 # Render chat history
 chat_container = st.container()
 with chat_container:
-    for m in st.session_state.thread["messages"]:
-        with st.chat_message("user" if m["role"] == "user" else "ai"):
-            st.write(m["content"]) 
+for m in st.session_state.thread["messages"]:
+	with st.chat_message("user" if m["role"] == "user" else "ai"):
+		st.write(m["content"]) 
 
 # Chat input
 prompt = st.chat_input("Ask a question")
@@ -124,19 +124,19 @@ if prompt:
     
     # Add user message to database
     db.add_message(st.session_state.thread["id"], "user", prompt)
-    st.session_state.thread["messages"].append({"role": "user", "content": prompt})
+	st.session_state.thread["messages"].append({"role": "user", "content": prompt})
     
-    with st.chat_message("user"):
-        st.write(prompt)
+	with st.chat_message("user"):
+		st.write(prompt)
 
-    if st.session_state.graph is None:
-        answer = "Please upload a PDF first."
-    else:
-        answer = ask_question(st.session_state.graph, prompt, st.session_state.thread["id"])
+	if st.session_state.graph is None:
+		answer = "Please upload a PDF first."
+	else:
+		answer = ask_question(st.session_state.graph, prompt, st.session_state.thread["id"])
 
     # Add AI response to database
     db.add_message(st.session_state.thread["id"], "assistant", answer)
-    st.session_state.thread["messages"].append({"role": "assistant", "content": answer})
+	st.session_state.thread["messages"].append({"role": "assistant", "content": answer})
     
-    with st.chat_message("ai"):
-        st.write(answer)
+	with st.chat_message("ai"):
+		st.write(answer)

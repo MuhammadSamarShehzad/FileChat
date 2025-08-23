@@ -19,4 +19,4 @@ __pycache__/
 
 # database temp files
 chatbot.db-shm
-chatbot
+chatbot.db-wal

@@ -4,11 +4,15 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 load_dotenv()
 
+# API Configuration
 api_key = os.getenv("HG_API_KEY")
 if not api_key:
     raise RuntimeError("Missing HG_API_KEY in environment. Please set it in your .env file.")
 
 OPENAI_BASE = os.getenv("OPENAI_BASE", "https://router.huggingface.co/v1")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b:cerebras")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "deepseek-ai/DeepSeek-V3.1")
 
-emb = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# Embeddings Configuration
+emb = HuggingFaceEmbeddings(
+    model_name=os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+)

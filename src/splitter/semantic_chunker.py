@@ -8,5 +8,5 @@ def split_pdf_into_chunks(docs):
         chunk_overlap=200,
         length_function=len,
     )
-	chunks = splitter.split_documents(docs)
-	return chunks 
+    chunks = splitter.split_documents(docs)
+    return chunks 

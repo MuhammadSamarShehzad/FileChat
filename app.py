@@ -1,6 +1,7 @@
 import streamlit as st
 from uuid import uuid4
 import hashlib
+import logging
 
 from src.pipeline.core import (
     load_docs_from_pdf_bytes,
@@ -8,6 +9,12 @@ from src.pipeline.core import (
     ask_question,
 )
 from src.db.database import db
+from src.utils.logger import setup_logging
+
+# Initialize logging
+setup_logging(log_file="app.log")
+logger = logging.getLogger(__name__)
+logger.info("FileChat application started")
 
 st.set_page_config(page_title="FileChat", page_icon="📄", layout="wide")
 

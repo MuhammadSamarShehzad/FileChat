@@ -8,23 +8,51 @@ logger = logging.getLogger(__name__)
 
 
 def make_load_docs(vectorstore, k: int = 4):
-    """Factory to create a load_docs node that uses a captured vectorstore."""
+    """Factory to create a load_docs node that uses a captured vectorstore,
+    retrieving docs for both the main query and its alternatives.
+    """
     def load_docs(state: QAState):
+        logger.info("Loading documents for query retrieval")
         query = state.get("question") or ""
-        if not query:
-            logger.warning("No question found in state; skipping retrieval.")
-            return {"retrieved": [], "question": ""}
-        try:
-            results = vectorstore.similarity_search(query, k=k)
-        except Exception as exc:
-            logger.exception("Vector store retrieval failed: %s", exc)
-            return {"retrieved": [], "question": ""}
+        alternatives = state.get("alternative_queries", [])
+        logger.debug(f"Main query: {query}, Alternative queries: {alternatives}")
+
+        if not query and not alternatives:
+            logger.warning("No question or alternatives found in state; skipping retrieval.")
+            return {"retrieved": [], "question": query, "alternative_queries": alternatives}
+
+        retrieved_docs = []
+
+        def _search(q: str):
+            try:
+                return vectorstore.similarity_search(q, k=k)
+            except Exception as exc:
+                logger.exception("Vector store retrieval failed for query '%s': %s", q, exc)
+                return []
+
+        # Search for main query
+        if query:
+            retrieved_docs.extend(_search(query))
+
+        # Search for alternative queries
+        for alt in alternatives:
+            retrieved_docs.extend(_search(alt))
+
+        # Deduplicate while preserving order
+        seen = set()
+        unique_docs = []
+        for r in retrieved_docs:
+            if r.page_content not in seen:
+                seen.add(r.page_content)
+                unique_docs.append(r.page_content)
+
         return {
-            "retrieved": [r.page_content for r in results],
-            "question": query,
+            "retrieved": unique_docs,
+            "question": query
         }
 
     return load_docs
+
 
 
 def select_relevant_context(question: str, messages: list, max_messages: int = 5):
@@ -48,11 +76,14 @@ def select_relevant_context(question: str, messages: list, max_messages: int = 5
 
 def llm_answer(state: QAState):
     """Answer the question using the LLM with smart conversation context selection."""
+    logger.info("Generating answer using LLM")
     retrieved = state.get("retrieved") or []
     question = state.get("question") or ""
     messages = state.get("messages", [])  # Get existing conversation history
+    logger.debug(f"Retrieved {len(retrieved)} documents, {len(messages)} conversation messages")
 
     if not question:
+        logger.warning("No question provided to LLM")
         return {"answer": "No question provided."}
 
     # SMART CONTEXT SELECTION: Only send relevant conversation history
@@ -95,3 +126,43 @@ def llm_answer(state: QAState):
         content = "I'm sorry, I couldn't generate an answer due to an internal error."
 
     return {"answer": clean_text(content)}
+
+
+def generate_alternative_queries(state: QAState):
+    """Generate alternative queries to improve document retrieval."""
+    logger.info("Generating alternative queries")
+    question = state.get("question") or ""
+    logger.debug(f"Original question: {question}")
+    if not question:
+        logger.warning("No question provided for alternative query generation")
+        return {"alternative_queries": []}
+
+    messages = [
+        SystemMessage(
+            content=(
+                "You are an expert query reformulator. Given a user's question, "
+                "generate 3 concise and relevant alternative queries that could help "
+                "in retrieving better documents. Avoid redundancy."
+            )
+        ),
+        HumanMessage(
+            content=(
+                f"Original Question: {question}\n\n"
+                "Provide 3 alternative queries."
+            )
+        ),
+    ]
+
+    try:
+        response = llm.invoke(messages)
+        content = getattr(response, "content", str(response))
+        # Split response into separate queries
+        alternatives = [clean_text(q) for q in content.split('\n') if q.strip()]
+        # Limit to 3 alternatives
+        alternatives = alternatives[:3]
+    except Exception as exc:
+        logger.exception("LLM invocation for alternative queries failed: %s", exc)
+        alternatives = []
+
+    logger.info(f"Following alternative queries generated: \n{alternatives}\n")
+    return {"alternative_queries": alternatives}

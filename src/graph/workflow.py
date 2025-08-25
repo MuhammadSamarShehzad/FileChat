@@ -1,17 +1,19 @@
 from .state import QAState
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.sqlite import SqliteSaver
-from .nodes import make_load_docs, llm_answer
+from .nodes import make_load_docs, llm_answer, generate_alternative_queries
 from src.db.database import db
 
 
 def create_workflow(vectorstore, k: int = 4):
     workflow = StateGraph(QAState)
 
+    workflow.add_node("alternate_queries", generate_alternative_queries)
     workflow.add_node("LOAD_DOCS", make_load_docs(vectorstore, k=k))
     workflow.add_node("LLM_ANSWER", llm_answer)
 
-    workflow.add_edge(START, "LOAD_DOCS")
+    workflow.add_edge(START, "alternate_queries")
+    workflow.add_edge("alternate_queries", "LOAD_DOCS")
     workflow.add_edge("LOAD_DOCS", "LLM_ANSWER")
     workflow.add_edge("LLM_ANSWER", END)
 

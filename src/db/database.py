@@ -1,6 +1,9 @@
 import sqlite3
 import json
+import logging
 from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class FileChatDB:
@@ -10,8 +13,10 @@ class FileChatDB:
     
     def init_database(self):
         """Initialize database tables"""
+        logger.info("Initializing database tables")
         conn = sqlite3.connect(self.db_path)
         try:
+            logger.debug("Creating pdfs table")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS pdfs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,6 +27,7 @@ class FileChatDB:
                 )
             """)
             
+            logger.debug("Creating chat_threads table")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS chat_threads (
                     id TEXT PRIMARY KEY,
@@ -31,6 +37,7 @@ class FileChatDB:
                 )
             """)
             
+            logger.debug("Creating chat_messages table")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS chat_messages (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,12 +49,17 @@ class FileChatDB:
                 )
             """)
             conn.commit()
+            logger.info("Database tables initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            raise
         finally:
             conn.close()
     
     def store_pdf(self, filename: str, content_hash: str, chunks: List[str]) -> int:
-        """Store PDF metadata and chunks, return PDF ID. 
+        """Store PDF metadata and chunks, return PDF ID.
         If PDF with same content already exists, return existing ID instead of overwriting."""
+        logger.info(f"Storing PDF: {filename}")
         conn = sqlite3.connect(self.db_path)
         try:
             # Check if PDF with same content hash already exists
@@ -55,15 +67,22 @@ class FileChatDB:
             
             if existing_pdf:
                 # PDF already exists, return existing ID (don't overwrite)
+                logger.debug(f"PDF already exists with ID: {existing_pdf[0]}")
                 return existing_pdf[0]
             else:
                 # New PDF, insert it
+                logger.debug("Storing new PDF")
                 cursor = conn.execute(
                     "INSERT INTO pdfs (filename, content_hash, chunks) VALUES (?, ?, ?)",
                     (filename, content_hash, json.dumps(chunks))
                 )
                 conn.commit()
-                return cursor.lastrowid
+                pdf_id = cursor.lastrowid
+                logger.info(f"PDF stored successfully with ID: {pdf_id}")
+                return pdf_id
+        except Exception as e:
+            logger.error(f"Failed to store PDF {filename}: {e}")
+            raise
         finally:
             conn.close()
     
@@ -79,21 +98,29 @@ class FileChatDB:
     def create_chat_thread(self, thread_id: str, pdf_id: Optional[int] = None):
         """Create a new chat thread or update existing one with PDF.
         If thread already has a PDF, don't overwrite it unless explicitly requested."""
+        logger.info(f"Creating chat thread: {thread_id}")
         conn = sqlite3.connect(self.db_path)
         try:
             existing = conn.execute("SELECT id, pdf_id FROM chat_threads WHERE id = ?", (thread_id,)).fetchone()
             
             if existing:
+                logger.debug(f"Thread {thread_id} already exists")
                 existing_pdf_id = existing[1]
                 if pdf_id is not None and existing_pdf_id is None:
                     # Thread exists but has no PDF, add the PDF
+                    logger.debug(f"Associating PDF {pdf_id} with existing thread {thread_id}")
                     conn.execute("UPDATE chat_threads SET pdf_id = ? WHERE id = ?", (pdf_id, thread_id))
                 # If thread already has a PDF, don't overwrite it (preserve existing connection)
             else:
                 # Create new thread
+                logger.debug(f"Creating new thread {thread_id}")
                 conn.execute("INSERT INTO chat_threads (id, pdf_id) VALUES (?, ?)", (thread_id, pdf_id))
             
             conn.commit()
+            logger.info(f"Chat thread {thread_id} processed successfully")
+        except Exception as e:
+            logger.error(f"Failed to create/update chat thread {thread_id}: {e}")
+            raise
         finally:
             conn.close()
     

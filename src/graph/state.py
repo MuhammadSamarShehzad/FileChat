@@ -7,3 +7,4 @@ class QAState(TypedDict, total=False):
     retrieved: List[str]
     answer: str
     messages: List[BaseMessage]  # Chat history for conversation context
+    alternatives = List[str]  # Alternative queries for better retrieval

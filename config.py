@@ -4,6 +4,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 load_dotenv()
 
+MAX_MESSAGES = 10  # Keep last 10 messages (≈5 Q&A pairs)
+
 # API Configuration
 api_key = os.getenv("HG_API_KEY")
 if not api_key:
